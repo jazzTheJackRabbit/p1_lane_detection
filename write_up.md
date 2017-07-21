@@ -61,8 +61,11 @@ My pipeline consists of the following steps:
 
 The potential shortcomings of the current pipeline are as follows:
 1. Only the raw lane line segments are detected.
-2. Line segments are not extrapolated to one single lane line (left or right)
+
+2. Line segments are not extrapolated to one single lane line (left or right).
+
 3. If the lane line seems curved in the image - it will not be detected (currently only uses line segments).
+
 4. Dark regions of the lane (under trees) are not correctly detected as lane lines.
 
 
@@ -70,5 +73,7 @@ The potential shortcomings of the current pipeline are as follows:
 
 Potential improvements to the pipeline are definitely required and a few ideas to do so, are as follows:
 * We can detect left lanes lines and right lane lines by finding slopes of the line segments. If they have a positive slope they will be a left lane line and a negative slope will be a right lane line.
+
 * We can use the points that form all of the line segments on each side of the lane and fit a line through these line-segment-end-points by minimizing the squared error and extend the fit line to start from bottom (y=image_height) of the image for each of the sides of the lane.
+
 * For lane lines that look curved in the image - we may have to use the detected line segments and fit a curve to represent the lane.
