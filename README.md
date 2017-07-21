@@ -1,53 +1,79 @@
-# **Finding Lane Lines on the Road** 
-[![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
+# **Finding Lane Lines on the Road**
 
-<img src="examples/laneLines_thirdPass.jpg" width="480" alt="Combined Image" />
-
-Overview
 ---
 
-When we drive, we use our eyes to decide where to go.  The lines on the road that show us where the lanes are act as our constant reference for where to steer the vehicle.  Naturally, one of the first things we would like to do in developing a self-driving car is to automatically detect lane lines using an algorithm.
+**Finding Lane Lines on the Road**
 
-In this project you will detect lane lines in images using Python and OpenCV.  OpenCV means "Open-Source Computer Vision", which is a package that has many useful tools for analyzing images.  
-
-To complete the project, two files will be submitted: a file containing project code and a file containing a brief write up explaining your solution. We have included template files to be used both for the [code](https://github.com/udacity/CarND-LaneLines-P1/blob/master/P1.ipynb) and the [writeup](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md).The code file is called P1.ipynb and the writeup template is writeup_template.md 
-
-To meet specifications in the project, take a look at the requirements in the [project rubric](https://review.udacity.com/#!/rubrics/322/view)
+The objective of this project is to build a simple pipeline to understand the fundamentals of computer vision techniques that can be applied in the context of self-driving cars.
 
 
-Creating a Great Writeup
----
-For this project, a great writeup should provide a detailed response to the "Reflection" section of the [project rubric](https://review.udacity.com/#!/rubrics/322/view). There are three parts to the reflection:
 
-1. Describe the pipeline
+[//]: # (Image References)
 
-2. Identify any shortcomings
+[grayscale]: ./test_images_output/grayscale.jpg "Grayscale"
+[gaussian_blur]: ./test_images_output/gaussian_blur.jpg "Gaussian blurred image"
+[canny]: ./test_images_output/canny.jpg "Output from Canny Edge Detection"
+[region_mask]: ./test_images_output/region_mask.jpg "Region Masked"
+[hough]: ./test_images_output/hough.jpg "Lines from Hough Transformation"
+[lane_lines]: ./test_images_output/lane_lines.jpg "Lane Lines"
 
-3. Suggest possible improvements
-
-We encourage using images in your writeup to demonstrate how your pipeline works.  
-
-All that said, please be concise!  We're not looking for you to write a book here: just a brief description.
-
-You're not required to use markdown for your writeup.  If you use another method please just submit a pdf of your writeup. Here is a link to a [writeup template file](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md). 
-
-
-The Project
 ---
 
-## If you have already installed the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) you should be good to go!   If not, you should install the starter kit to get started on this project. ##
+### Reflection
 
-**Step 1:** Set up the [CarND Term1 Starter Kit](https://classroom.udacity.com/nanodegrees/nd013/parts/fbf77062-5703-404e-b60c-95b78b2f3f9e/modules/83ec35ee-1e02-48a5-bdb7-d244bd47c2dc/lessons/8c82408b-a217-4d09-b81d-1bda4c6380ef/concepts/4f1870e0-3849-43e4-b670-12e6f2d4b7a7) if you haven't already.
+### 1. Pipeline description.
 
-**Step 2:** Open the code in a Jupyter Notebook
+My pipeline consists of the following steps:
 
-You will complete the project code in a Jupyter notebook.  If you are unfamiliar with Jupyter Notebooks, check out <A HREF="https://www.packtpub.com/books/content/basics-jupyter-notebook-and-python" target="_blank">Cyrille Rossant's Basics of Jupyter Notebook and Python</A> to get started.
+1. The image is first converted into grayscale so that we only have one channel/2-dimensional matrix to work with and process.
 
-Jupyter is an Ipython notebook where you can run blocks of code and see results interactively.  All the code for this project is contained in a Jupyter notebook. To start Jupyter in your browser, use terminal to navigate to your project directory and then run the following command at the terminal prompt (be sure you've activated your Python 3 carnd-term1 environment as described in the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) installation instructions!):
+  ![alt text][grayscale]
 
-`> jupyter notebook`
+2. The image is then blurred using a kernel size of 5 for the gaussian blur process.
 
-A browser window will appear showing the contents of the current directory.  Click on the file called "P1.ipynb".  Another browser window will appear displaying the notebook.  Follow the instructions in the notebook to complete the project.  
+  ![alt text][gaussian_blur]
 
-**Step 3:** Complete the project and submit both the Ipython notebook and the project writeup
+3. The next process is to detect the edges in the blurred-grayscale image. The Canny Edge detection algorithm is used with the low and high thresholds in a 1:3 ratio (with manual tuning I arrived at 50 for the low threshold and 150 for the high threshold).
 
+  ![alt text][canny]
+
+4. The next step of lane detection is to use prior-knowledge of where the car's lane would be and block out regions of the image (mask) that may not be directly useful (for the purpose of lane detection. However, these regions will be useful for detecting other cars in other lanes).
+  * 60% of the top of the image is blocked out.
+  * 10% of the left of the image is blocked out.
+  * 5 % of the right of the image is blocked out.
+  * Now, we have 4 points that form the vertices of the region mask.
+  * Since the lane lines look like they may have an angle between 25 degrees and 45 degrees, we further improve the points moving the top-left point further in x direction based on a line drawn from the bottom-left vertex with an angle of 35 degrees. Similarly we set the top-right vertex based on a line drawn from the bottom-right vertex with an angle of 30 degrees.
+  * Applying the mask eliminates most of the unwanted regions of the image and leaves just the region important for lane detection.
+
+  ![alt text][region_mask]
+
+5. Next, we transform the points in the blurred-grayscale image space into the hough space and retrieve lines in the image space.
+  * For the hough transformation process, an important parameter is the number of sine-curves (of points) that intersect at specific points throughout the hough-space. We can eliminate a lot of detected lines, by setting a high threshold value (15).
+  * Further, we set 10 as the minimum number of pixels required to form a line and also as the maximum gap between pixels of line segments that form an extended line.
+
+  ![alt text][hough]
+
+6. Once we detect the line segments from the image, we overlay the "lane lines/line segments" on the original image.
+
+  ![alt text][lane_lines]
+
+### 2. Potential shortcomings
+
+The potential shortcomings of the current pipeline are as follows:
+1. Only the raw lane line segments are detected.
+
+2. Line segments are not extrapolated to one single lane line (left or right).
+
+3. If the lane line seems curved in the image - it will not be detected (currently only uses line segments).
+
+4. Dark regions of the lane (under trees) are not correctly detected as lane lines.
+
+
+### 3. Possible improvements
+
+Potential improvements to the pipeline are definitely required and a few ideas to do so, are as follows:
+* We can detect left lanes lines and right lane lines by finding slopes of the line segments. If they have a positive slope they will be a left lane line and a negative slope will be a right lane line.
+
+* We can use the points that form all of the line segments on each side of the lane and fit a line through these line-segment-end-points by minimizing the squared error and extend the fit line to start from bottom (y=image_height) of the image for each of the sides of the lane.
+
+* For lane lines that look curved in the image - we may have to use the detected line segments and fit a curve to represent the lane.
